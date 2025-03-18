@@ -1,3 +1,4 @@
+using BookStoreApp.API.Configurations;
 using BookStoreApp.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -10,6 +11,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Configure the connection to the database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<BookStoreDbContext>(options => options.UseSqlServer(connectionString));
+
+// AutoMapper
+builder.Services.AddAutoMapper(typeof(AutorMapperConfig));
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
