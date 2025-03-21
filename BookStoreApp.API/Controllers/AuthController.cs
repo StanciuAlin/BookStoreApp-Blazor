@@ -53,7 +53,7 @@ namespace BookStoreApp.API.Controllers
 
                 await _userManager.AddToRoleAsync(user, "User");
 
-                return Accepted();
+                return Ok();
             }
             catch (Exception ex)
             {
@@ -90,7 +90,7 @@ namespace BookStoreApp.API.Controllers
                     Email = userDto.Email
                 };
 
-                return Accepted(response); // or return response; or return Ok(response);
+                return Ok(response); // or return response; or return Ok(response);
             }
             catch (Exception ex)
             {

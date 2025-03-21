@@ -1,0 +1,23 @@
+﻿@page "/users/logout"
+
+@inject IAuthenticationService _authService
+@inject NavigationManager _navigationManager
+
+<h3>Logout</h3>
+
+<h2>You are logged out successfully</h2>
+
+@code {
+    // Make sure that JS calls are done only after the first render
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await _authService.Logout();
+            _navigationManager.NavigateTo("/"); // Navigate to index
+
+            // Update the UI after changes
+            StateHasChanged();
+        }
+    }
+}

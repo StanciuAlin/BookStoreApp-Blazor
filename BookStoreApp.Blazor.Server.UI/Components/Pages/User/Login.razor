@@ -1,0 +1,74 @@
+﻿@page "/users/login"
+
+@inject IAuthenticationService _authService
+@inject NavigationManager _navManager
+
+<h3>Login</h3>
+
+<div class="card-body">
+    <EditForm FormName="LoginForm" Model="LoginModel" OnValidSubmit="HandleLogin">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <InputText class="form-control" @bind-Value="LoginModel!.Email" />
+            <ValidationMessage For="@(() => LoginModel.Email)" />
+        </div>
+        <br />
+        <div class="form-group">
+            <label for="password">Password</label>
+            <InputText type="password" class="form-control" @bind-Value="LoginModel!.Password" />
+            <ValidationMessage For="@(() => LoginModel.Password)" />
+        </div>
+        <br />
+        <button type="submit" class="btn btn-primary btn-block">Login</button>
+    </EditForm>
+</div>
+
+@code {
+
+    [SupplyParameterFromForm]
+    private UserApiLoginDto? LoginModel { get; set; }
+    private string _message = string.Empty;
+
+    protected override void OnInitialized() => LoginModel ??= new();
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            var response = await _authService.AuthenticateAsync(LoginModel);
+
+            if (response)
+            {
+                NavigateToHome();
+            }
+
+            _message = "Invalid credentials. Please try again.";
+        }
+        catch (ApiException exApi)
+        {
+            // Because we receive StatusCode = 202 from API
+            if (exApi.StatusCode >= 200 && exApi.StatusCode <= 299)
+            {
+                NavigateToHome();
+            }
+            _message = exApi.Response;
+        }
+    }
+
+    private void NavigateToHome()
+    {
+        _navManager.NavigateTo("/");
+
+    }
+
+    // Make sure that JS calls are done only after the first render
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            StateHasChanged();
+        }
+    }
+}
