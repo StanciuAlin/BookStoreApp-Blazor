@@ -16,7 +16,7 @@
             await _authService.Logout();
             _navigationManager.NavigateTo("/"); // Navigate to index
 
-            // Update the UI after changes
+            // UpdateAsync the UI after changes
             StateHasChanged();
         }
     }
