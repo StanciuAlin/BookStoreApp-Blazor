@@ -16,11 +16,13 @@ namespace BookStoreApp.API.Controllers
     {
         private readonly BookStoreDbContext _context;
         private readonly IMapper _mapper;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
-        public BooksController(BookStoreDbContext context, IMapper mapper)
+        public BooksController(BookStoreDbContext context, IMapper mapper, IWebHostEnvironment webHostEnvironment)
         {
             _context = context;
             this._mapper = mapper;
+            this._webHostEnvironment = webHostEnvironment;
         }
 
         // GET: api/Books
@@ -70,7 +72,20 @@ namespace BookStoreApp.API.Controllers
                 return NotFound();
             }
 
+            if (!string.IsNullOrEmpty(bookDto.ImageData))
+            {
+                bookDto.Image = CreateFile(bookDto.ImageData, bookDto.OriginalImageName);
+
+                var picName = Path.GetFileName(book.Image);
+                var path = $"{_webHostEnvironment.WebRootPath}\\images\\bookCover{picName}";
+                if (System.IO.File.Exists(path))
+                {
+                    System.IO.File.Delete(path);
+                }
+            }
+
             _mapper.Map(bookDto, book);
+
             _context.Entry(bookDto).State = EntityState.Modified;
 
             try
@@ -97,8 +112,9 @@ namespace BookStoreApp.API.Controllers
         [HttpPost]
         [Authorize(Roles = "Administrator")]
         public async Task<ActionResult<BookCreateDto>> PostBook(BookCreateDto bookDto)
-        {
+        { 
             var book = _mapper.Map<Book>(bookDto);
+            book.Image = CreateFile(bookDto.ImageData, bookDto.OriginalImageName);
             await _context.Books.AddAsync(book);
             await _context.SaveChangesAsync();
 
@@ -120,6 +136,23 @@ namespace BookStoreApp.API.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        private string CreateFile(string imageBase64, string originalImageName)
+        {
+            var url = HttpContext.Request.Host.Value;
+            var ext = Path.GetExtension(originalImageName);
+            var fileName = $"{Guid.NewGuid()}{ext}";
+            
+            var path = $"{_webHostEnvironment.WebRootPath}\\images\\bookCover\\{fileName}";
+
+            byte[] image = Convert.FromBase64String(imageBase64);
+
+            var fileStream = System.IO.File.Create(path);
+            fileStream.Write(image, 0, image.Length);
+            fileStream.Close();
+
+            return $"https://{url}/images/bookCover/{fileName}";
         }
 
         private async Task<bool> BookExistsAsync(int id)

@@ -36,18 +36,22 @@
     else
     {
         <br />
-        foreach (var book in AuthorModel.Books)
-        {
-            <div class="card" style="width: 18rem;">
-                @* <img src="@book.Image" class="card-img-top" alt="@book.Title"> *@
-                <img src="~/images/Frații_Jderi_film.jpg" width="70" height="130" class="card-img-top" alt="@book.Title">
-                <div class="card-body">
-                    <h5 class="card-title">@book.Title - @book.Price.ToString("C")</h5>
-                    <p class="card-text"></p>
-                    <a href="#" class="btn btn-primary">View book</a>
+        <div class="row">
+            @foreach (var book in AuthorModel.Books)
+            {
+                <div class="col-3">
+                    <div class="card" style="width: 18rem;">
+                        @* <img src="~/images/Frații_Jderi_film.jpg" width="70" height="130" class="card-img-top" alt="@book.Title"> *@
+                        <img src="@book.Image" class="card-img-top" alt="@book.Title" style="width:286px; height:164px">
+                        <div class="card-body">
+                            <h5 class="card-title">@book.Title - @book.Price.ToString("C")</h5>
+                            <p class="card-text"></p>
+                            <a href="/books/details/@book.Id" class="btn btn-primary">View book</a>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        }
+            }
+        </div>
         <br />
     }
 

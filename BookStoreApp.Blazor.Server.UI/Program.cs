@@ -21,6 +21,7 @@ builder.Services.AddHttpClient<IClient, Client>(cl => cl.BaseAddress = new Uri("
 // Add after HttpClient because we need it to be available in AuthenticationService
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<IAuthorService, AuthorService>();
+builder.Services.AddScoped<IBookService, BookService>();
 
 builder.Services.Configure<CircuitOptions>(options => options.DetailedErrors = true);
 

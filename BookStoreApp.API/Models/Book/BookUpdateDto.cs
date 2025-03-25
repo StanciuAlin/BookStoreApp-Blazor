@@ -19,10 +19,20 @@ namespace BookStoreApp.API.Models.Book
         [StringLength(250, MinimumLength = 10)]
         public string Summary { get; set; }
 
+        // Make nullable everything is not Required
         public string? Image { get; set; }
+
+        // Make nullable everything is not Required
+        public string? ImageData { get; set; }
+
+        // Make nullable everything is not Required
+        public string? OriginalImageName { get; set; }
 
         [Required]
         [Range(0, int.MaxValue)]
         public decimal Price { get; set; }
+
+        [Required]
+        public int AuthorId { get; set; }
     }
 }

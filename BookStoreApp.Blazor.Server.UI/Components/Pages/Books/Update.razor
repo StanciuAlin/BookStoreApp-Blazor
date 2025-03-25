@@ -1,0 +1,157 @@
+﻿@page "/books/update/{id:int}"
+
+@inject IBookService _bookService
+@inject IAuthorService _authorService
+@inject NavigationManager _navigationManager
+@attribute [Authorize(Roles = Roles.Administrator)]
+
+<h3>Edit @_bookModel.Title by @_bookAuthor. </h3>
+
+<EditForm Model="_bookModel" OnValidSubmit="HandleUpdateBook">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="form-group">
+        <label for="title">Title</label>
+        <InputText class="form-control" @bind-Value="_bookModel.Title" id="title" />
+        <ValidationMessage For="@(() => _bookModel.Title)" />
+    </div>
+    <br />
+    <div class="form-group">
+        <label for="isbn">ISBN</label>
+        <InputText class="form-control" @bind-Value="_bookModel.Isbn" id="isbn" />
+        <ValidationMessage For="@(() => _bookModel.Isbn)" />
+    </div>
+    <br />
+    <div class="form-group">
+        <label for="price">Price</label>
+        <InputNumber class="form-control" @bind-Value="_bookModel.Price" id="price" />
+        <ValidationMessage For="@(() => _bookModel.Price)" />
+    </div>
+    <br />
+    <div class="form-group">
+        <label for="year">Year</label>
+        <InputNumber class="form-control" @bind-Value="_bookModel.Year" id="year" />
+        <ValidationMessage For="@(() => _bookModel.Year)" />
+    </div>
+    <br />
+    <div class="form-group">
+        <label for="summary">Summary</label>
+        <InputTextArea class="form-control" @bind-Value="_bookModel.Summary" id="summary" />
+        <ValidationMessage For="@(() => _bookModel.Summary)" />
+    </div>
+    <br />
+    <div class="form-group">
+        <label for="authorId">Authors</label>
+        <InputSelect class="form-select" @bind-Value="_bookModel.AuthorId" id="authorId">
+            <option value="">-- Select Author ---</option>
+            @foreach (var author in _authors)
+            {
+                <option value="@author.Id">@author.FirstName @author.LastName</option>
+            }
+        </InputSelect>
+        <ValidationMessage For="@(() => _bookModel.AuthorId)" />
+    </div>
+    <br />
+    <div class="form-group">
+        <label>Book cover photo</label>
+        <div>
+            <InputFile OnChange="HandleFileSelection" />
+            <img src="@_img" width="150" height="240" class="img-thumbnail" />
+            <p class="text-danger">@_uploadFileWarning</p>
+        </div>
+    </div>
+    <br />
+    <button type="submit" class="btn btn-warning">
+        <i class="bi bi-pencil"></i>
+        Edit
+    </button>
+    <button type="button" @onclick="BackToList" class="btn btn-dark">
+        <i class="bi bi-chevron-double-left"></i>
+        Back to list
+    </button>
+</EditForm>
+
+
+@code {
+    // Matching with Id parameter from the @page
+    [Parameter]
+    public int id { get; set; }
+    private BookUpdateDto _bookModel = new BookUpdateDto();
+    private List<AuthorReadOnlyDto> _authors = new List<AuthorReadOnlyDto>();
+    private string _bookAuthor = string.Empty;
+    private string _uploadFileWarning = string.Empty;
+    private string _img = string.Empty;
+    private long _maxFileSize = 1024 * 1024 * 5;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var bookResponse = await _bookService.GetByIdForUpdateAsync(id);
+        if (bookResponse.Success)
+        {
+            _bookModel = bookResponse.Data;
+            _img = _bookModel.Image;
+        }
+
+        var authorResponse = await _authorService.GetAllAsync();
+        if (authorResponse.Success)
+        {
+            _authors = authorResponse.Data;
+        }
+
+        if (_authors != null && _authors.Count > 0)
+        {
+            var author = _authors.FirstOrDefault(a => a.Id == _bookModel.AuthorId);
+            if (author != null && !string.IsNullOrEmpty(author.FirstName) && !string.IsNullOrEmpty(author.LastName))
+            {
+                _bookAuthor = $"{author.FirstName} {author.LastName}";
+            }
+        }
+        else
+        {
+            _bookAuthor = "No Author";
+        }
+    }
+
+    private async Task HandleFileSelection(InputFileChangeEventArgs args)
+    {
+        var file = args.File;
+        if (file != null)
+        {
+            if (file.Size > _maxFileSize)
+            {
+                _uploadFileWarning = "This file is too large for upload";
+                return;
+            }
+
+            var ext = System.IO.Path.GetExtension(file.Name);
+            // Can add more validations for size, type and so on
+            if ((ext.ToLower().Contains("jpg") || ext.ToLower().Contains("jpeg") || ext.ToLower().Contains("png")) == false)
+            {
+                _uploadFileWarning = "Please select a valid image file (*.jpg | *.jpeg | *.png)";
+                return;
+            }
+            var byteArray = new byte[file.Size];
+            await file.OpenReadStream().ReadAsync(byteArray);
+            string imageType = file.ContentType;
+            string base64String = Convert.ToBase64String(byteArray);
+
+            _bookModel.ImageData = base64String;
+            _bookModel.OriginalImageName = file.Name;
+            _img = $"data:{imageType}; base64, {base64String}";
+        }
+    }
+
+    private async Task HandleUpdateBook()
+    {
+        var response = await _bookService.UpdateAsync(id, _bookModel);
+        if (response.Success)
+        {
+            BackToList();
+        }
+    }
+
+    private void BackToList()
+    {
+        _navigationManager.NavigateTo("/books/");
+    }
+}
