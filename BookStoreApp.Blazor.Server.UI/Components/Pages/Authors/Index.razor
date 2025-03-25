@@ -5,10 +5,10 @@
 
 <h3>Authors</h3>
 
-@if (!response.Success)
+@if (!_response.Success)
 {
     <div class="alert alert-info">
-        <h4>@response.Message</h4>
+        <h4>@_response.Message</h4>
     </div>
 }
 else
@@ -27,7 +27,9 @@ else
         </AuthorizeView>
         <br />
 
-        <table class="table table-responsive">
+        <AuthorTable AuthorsParam="Authors" TotalSizeParam="TotalSize" OnScrollCustomEvent="LoadAuthors"/>
+
+        @* <table class="table table-responsive">
             <thead>
                 <tr>
                     <th>First Name</th>
@@ -53,44 +55,52 @@ else
                     </tr>
                 }
             </tbody>
-        </table>
+        </table> *@
     }
 }
 
 @code {
-    private List<AuthorReadOnlyDto> Authors;
-    private Response<List<AuthorReadOnlyDto>> response = new Response<List<AuthorReadOnlyDto>>() { Success = true };
+    public List<AuthorReadOnlyDto> Authors;
+    public int TotalSize { get; set; }
+    private Response<AuthorReadOnlyDtoVirtualizeResponse> _response = new Response<AuthorReadOnlyDtoVirtualizeResponse>() { Success = true };
 
     // protected override async Task OnInitializedAsync()
     // {
 
     // }
 
-    private async Task Delete(int authorId)
-    {
-        var author = Authors.FirstOrDefault(q => q.Id == authorId);
-        var confirm = await js.InvokeAsync<bool>("confirm", $"Are you sure you want to delete {author.FirstName} {author.LastName}?");
-        if (confirm)
-        {
-            var responseDelete = await _authorService.DeleteAsync(authorId);
-            if (responseDelete.Success)
-            {
-                await OnInitializedAsync();
-            }
-        }
-    }
+    // private async Task Delete(int authorId)
+    // {
+    //     var author = Authors.FirstOrDefault(q => q.Id == authorId);
+    //     var confirm = await js.InvokeAsync<bool>("confirm", $"Are you sure you want to delete {author.FirstName} {author.LastName}?");
+    //     if (confirm)
+    //     {
+    //         var responseDelete = await _authorService.DeleteAsync(authorId);
+    //         if (responseDelete.Success)
+    //         {
+    //             await OnInitializedAsync();
+    //         }
+    //     }
+    // }
 
     // Make sure that JS calls are done only after the first render
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            response = await _authorService.GetAllAsync();
-            if (response.Success)
+            _response = await _authorService.GetAllAsync(new QueryParameters { StartIndex = 0});
+            if (_response.Success)
             {
-                Authors = response.Data;
+                Authors = _response.Data.Items.ToList();
             }
             StateHasChanged();
         }
+    }
+
+    private async Task LoadAuthors(QueryParameters queryParameters)
+    {
+        var virtualizeResult = await _authorService.GetAllAsync(queryParameters);
+        Authors = virtualizeResult.Data.Items.ToList();
+        TotalSize = virtualizeResult.Data.TotalSize;
     }
 }

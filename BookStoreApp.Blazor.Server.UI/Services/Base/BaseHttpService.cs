@@ -47,6 +47,14 @@ namespace BookStoreApp.Blazor.Server.UI.Services.Base
                         Success = false
                     };
                     break;
+                case StatusCodes.Status401Unauthorized:
+                    response = new Response<Guid>()
+                    {
+                        Message = "Invalid credentials. Please try again.",
+                        ValidationErrors = apiException.Response,
+                        Success = false
+                    };
+                    break;
                 case StatusCodes.Status404NotFound:
                     response = new Response<Guid>()
                     {

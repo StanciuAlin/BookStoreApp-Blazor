@@ -2,6 +2,7 @@
 using AutoMapper.QueryableExtensions;
 using BookStoreApp.API.Data;
 using BookStoreApp.API.Models.Book;
+using BookStoreApp.API.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,13 +15,13 @@ namespace BookStoreApp.API.Controllers
     [Authorize]
     public class BooksController : ControllerBase
     {
-        private readonly BookStoreDbContext _context;
+        private readonly IBooksRepository _booksRepository;
         private readonly IMapper _mapper;
         private readonly IWebHostEnvironment _webHostEnvironment;
 
-        public BooksController(BookStoreDbContext context, IMapper mapper, IWebHostEnvironment webHostEnvironment)
+        public BooksController(IBooksRepository booksRepository, IMapper mapper, IWebHostEnvironment webHostEnvironment)
         {
-            _context = context;
+            this._booksRepository = booksRepository;
             this._mapper = mapper;
             this._webHostEnvironment = webHostEnvironment;
         }
@@ -29,10 +30,7 @@ namespace BookStoreApp.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<BookReadOnlyDto>>> GetBooks()
         {
-            var bookDtos = await _context.Books
-                .Include(q => q.Author)
-                .ProjectTo<BookReadOnlyDto>(_mapper.ConfigurationProvider)
-                .ToListAsync();
+            var bookDtos = await _booksRepository.GetAllBooksAsync();
             // var bookDtos = _mapper.Map<IEnumerable<BookReadOnlyDto>>(books);
             return Ok(bookDtos);
         }
@@ -41,10 +39,7 @@ namespace BookStoreApp.API.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<BookDetailsDto>> GetBook(int id)
         {
-            var book = await _context.Books
-                .Include(q => q.Author)
-                .ProjectTo<BookDetailsDto>(_mapper.ConfigurationProvider)
-                .FirstOrDefaultAsync(q => q.Id == id);
+            var book = await _booksRepository.GetBookDetailsAsync(id);
 
             if (book == null)
             {
@@ -65,7 +60,7 @@ namespace BookStoreApp.API.Controllers
                 return BadRequest();
             }
 
-            var book = await _context.Books.FindAsync(id);
+            var book = await _booksRepository.GetAsync(id);
 
             if (book == null)
             {
@@ -86,11 +81,9 @@ namespace BookStoreApp.API.Controllers
 
             _mapper.Map(bookDto, book);
 
-            _context.Entry(bookDto).State = EntityState.Modified;
-
             try
             {
-                await _context.SaveChangesAsync();
+                await _booksRepository.UpdateAsync(book);
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -114,9 +107,11 @@ namespace BookStoreApp.API.Controllers
         public async Task<ActionResult<BookCreateDto>> PostBook(BookCreateDto bookDto)
         { 
             var book = _mapper.Map<Book>(bookDto);
-            book.Image = CreateFile(bookDto.ImageData, bookDto.OriginalImageName);
-            await _context.Books.AddAsync(book);
-            await _context.SaveChangesAsync();
+            if (!string.IsNullOrEmpty(bookDto.ImageData))
+            {
+                book.Image = CreateFile(bookDto.ImageData, bookDto.OriginalImageName);
+            }
+            await _booksRepository.AddAsync(book);
 
             return CreatedAtAction(nameof(GetBook), new { id = book.Id }, book);
         }
@@ -126,14 +121,13 @@ namespace BookStoreApp.API.Controllers
         [Authorize(Roles = "Administrator")]
         public async Task<IActionResult> DeleteBook(int id)
         {
-            var book = await _context.Books.FindAsync(id);
+            var book = await _booksRepository.GetAsync(id);
             if (book == null)
             {
                 return NotFound();
             }
 
-            _context.Books.Remove(book);
-            await _context.SaveChangesAsync();
+            await _booksRepository.DeleteAsync(id);
 
             return NoContent();
         }
@@ -157,7 +151,7 @@ namespace BookStoreApp.API.Controllers
 
         private async Task<bool> BookExistsAsync(int id)
         {
-            return await _context.Books.AnyAsync(e => e.Id == id);
+            return await _booksRepository.Exists(id);
         }
     }
 }
